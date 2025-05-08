@@ -1,17 +1,13 @@
 // script.js
 
-// ─────────────────────────────────────────────────────────────────────────────
 // 1) GLOBAL CONFIG & MOBILE DETECTION
-// ─────────────────────────────────────────────────────────────────────────────
 const API_KEY      = "pk_0b8abc6f834b444f949f727e88a728e0";
 const STATION_ID   = "cutters-choice-radio";
 const BASE_URL     = "https://api.radiocult.fm/api";
 const FALLBACK_ART = "https://i.imgur.com/qWOfxOS.png";
 const isMobile     = /Mobi|Android/i.test(navigator.userAgent);
 
-// ─────────────────────────────────────────────────────────────────────────────
 // 2) HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 function createGoogleCalLink(title, startUtc, endUtc) {
   if (!startUtc || !endUtc) return "#";
   const fmt = dt => new Date(dt)
@@ -47,9 +43,7 @@ function shuffleIframesDaily() {
   localStorage.setItem("lastShuffleDate", today);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // 3) DATA FETCHERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 // 3a) Live‐now
 async function fetchLiveNow() {
@@ -72,7 +66,7 @@ async function fetchWeeklySchedule() {
   if (!container) return;
   container.innerHTML = "<p>Loading this week's schedule…</p>";
   try {
-    const now = new Date();
+    const now  = new Date();
     const then = new Date(now.getTime() + 7*24*60*60*1000);
     const { schedules } = await rcFetch(
       `/station/${STATION_ID}/schedule?startDate=${now.toISOString()}&endDate=${then.toISOString()}`
@@ -85,7 +79,7 @@ async function fetchWeeklySchedule() {
       const day = new Date(ev.startDateUtc).toLocaleDateString("en-GB", {
         weekday: "long", day: "numeric", month: "short"
       });
-      (acc[day] = acc[day] || []).push(ev);
+      (acc[day] = acc[day]||[]).push(ev);
       return acc;
     }, {});
     container.innerHTML = "";
@@ -96,15 +90,12 @@ async function fetchWeeklySchedule() {
       const h3 = document.createElement("h3");
       h3.textContent = day;
       container.appendChild(h3);
-
       const ul = document.createElement("ul");
       ul.style.listStyle = "none";
       ul.style.padding   = "0";
-
       events.forEach(ev => {
-        const li = document.createElement("li");
+        const li   = document.createElement("li");
         li.style.marginBottom = "1rem";
-
         const wrap = document.createElement("div");
         wrap.style.display    = "flex";
         wrap.style.alignItems = "center";
@@ -117,8 +108,8 @@ async function fetchWeeklySchedule() {
         const art = ev.metadata?.artwork?.default || ev.metadata?.artwork?.original;
         if (art) {
           const img = document.createElement("img");
-          img.src        = art;
-          img.alt        = `${ev.title} artwork`;
+          img.src = art;
+          img.alt = `${ev.title} artwork`;
           img.style.cssText = "width:30px;height:30px;object-fit:cover;border-radius:3px;";
           wrap.appendChild(img);
         }
@@ -129,8 +120,8 @@ async function fetchWeeklySchedule() {
 
         if (!/archive/i.test(ev.title)) {
           const calBtn = document.createElement("a");
-          calBtn.href      = createGoogleCalLink(ev.title, ev.startDateUtc, ev.endDateUtc);
-          calBtn.target    = "_blank";
+          calBtn.href   = createGoogleCalLink(ev.title, ev.startDateUtc, ev.endDateUtc);
+          calBtn.target = "_blank";
           calBtn.innerHTML = "📅";
           calBtn.style.cssText = "font-size:1.4rem;text-decoration:none;margin-left:6px;";
           wrap.appendChild(calBtn);
@@ -139,7 +130,6 @@ async function fetchWeeklySchedule() {
         li.appendChild(wrap);
         ul.appendChild(li);
       });
-
       container.appendChild(ul);
     }
   } catch (e) {
@@ -154,7 +144,7 @@ async function fetchNowPlayingArchive() {
     const { result } = await rcFetch(`/station/${STATION_ID}/schedule/live`);
     const { metadata: md = {}, content: ct = {} } = result;
     const el = document.getElementById("now-archive");
-    if (md.title)        el.textContent = `Now Playing: ${md.artist? md.artist + " – " + md.title : md.title}`;
+    if (md.title)        el.textContent = `Now Playing: ${md.artist? md.artist+" – "+md.title:md.title}`;
     else if (md.filename) el.textContent = `Now Playing: ${md.filename}`;
     else if (ct.title)    el.textContent = `Now Playing: ${ct.title}`;
     else if (ct.name)     el.textContent = `Now Playing: ${ct.name}`;
@@ -165,12 +155,7 @@ async function fetchNowPlayingArchive() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // 4) ADMIN & UI ACTIONS
-// ─────────────────────────────────────────────────────────────────────────────
-function addMixcloud()    { /* … */ }
-function deleteMixcloud() { /* … */ }
-
 function openChatPopup() {
   const chatUrl = "https://app.radiocult.fm/embed/chat/cutters-choice-radio?theme=midnight&primaryColor=%235A8785&corners=sharp";
   if (isMobile) {
@@ -182,7 +167,6 @@ function openChatPopup() {
     window.open(chatUrl, "CuttersChatPopup", "width=400,height=700,resizable=yes,scrollbars=yes");
   }
 }
-
 function closeChatModal() {
   const chatModal = document.getElementById("chatModal"),
         iframe    = document.getElementById("chatModalIframe");
@@ -190,16 +174,14 @@ function closeChatModal() {
   iframe.src = "";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // 5) INITIALIZE ON DOM READY
-// ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
-  // a) Core fetches
+  // a) Fetch core data
   fetchLiveNow();
   fetchWeeklySchedule();
   fetchNowPlayingArchive();
 
-  // b) Auto-refresh
+  // b) Auto-refresh live and archive every 30s
   setInterval(fetchLiveNow,          30000);
   setInterval(fetchNowPlayingArchive, 30000);
 
@@ -221,37 +203,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const src = document.getElementById("inlinePlayer").src,
           w   = window.open("", "CCRPlayer", "width=400,height=200,resizable=yes");
     w.document.write(`
-      <!doctype html>
-      <html><head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width">
-        <title>Cutters Player</title>
-        <style>
-          body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;}
-          iframe{width:100%;height:180px;border:none;border-radius:4px;}
-        </style>
-      </head><body>
-        <iframe src="${src}" allow="autoplay"></iframe>
-      </body></html>`);
+      <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+      <title>Cutters Player</title><style>body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;}
+      iframe{width:100%;height:180px;border:none;border-radius:4px;}</style></head>
+      <body><iframe src="${src}" allow="autoplay"></iframe></body></html>`);
     w.document.close();
   });
 
-  // e) Socket.IO → custom user panel
+  // e) Hide the original embed’s user list
+  document.querySelector('.rc-user-list-container')?.style.setProperty('display','none','important');
+
+  // f) Socket.IO→ custom, de-duped user panel
   if (window.io) {
     const panel = document.getElementById("rc-user-panel");
-    if (!panel) return;
-
-    panel.innerHTML = '<li><em>Connecting…</em></li>';
-
+    panel.innerHTML = "<li><em>Connecting…</em></li>";
     const socket = io("https://app.radiocult.fm", {
       transports: ["websocket"],
       query: { station: STATION_ID, apiKey: API_KEY }
     });
-
-    socket.on("connect", () => {
-      panel.innerHTML = "";
-    });
-
     socket.on("user_list", users => {
       panel.innerHTML = "";
       const seen = new Set();
@@ -263,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
         li.textContent = n;
         panel.appendChild(li);
       });
-      if (!panel.children.length) {
+      if (!seen.size) {
         const li = document.createElement("li");
         li.innerHTML = "<em>No one online</em>";
         panel.appendChild(li);
