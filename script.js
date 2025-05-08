@@ -3,12 +3,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // 1) GLOBAL CONFIG & MOBILE DETECTION
 // ─────────────────────────────────────────────────────────────────────────────
-const API_KEY           = "pk_0b8abc6f834b444f949f727e88a728e0";
-const STATION_ID        = "cutters-choice-radio";
-const BASE_URL          = "https://api.radiocult.fm/api";
-const FALLBACK_ART      = "https://i.imgur.com/qWOfxOS.png";
-const MIXCLOUD_PASSWORD = "cutters44";
-const isMobile          = /Mobi|Android/i.test(navigator.userAgent);
+const API_KEY      = "pk_0b8abc6f834b444f949f727e88a728e0";
+const STATION_ID   = "cutters-choice-radio";
+const BASE_URL     = "https://api.radiocult.fm/api";
+const FALLBACK_ART = "https://i.imgur.com/qWOfxOS.png";
+const isMobile     = /Mobi|Android/i.test(navigator.userAgent);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2) HELPERS
@@ -52,15 +51,13 @@ function shuffleIframesDaily() {
 // 3) DATA FETCHERS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 3a) Live‐now (fills #now-dj and #now-art)
+// 3a) Live‐now
 async function fetchLiveNow() {
   try {
     const { result } = await rcFetch(`/station/${STATION_ID}/schedule/live`);
     const { metadata: md = {}, content: ct = {} } = result;
     document.getElementById("now-dj").textContent =
-      md.artist
-        ? `${md.artist} – ${md.title}`
-        : (ct.title || "No live show");
+      md.artist ? `${md.artist} – ${md.title}` : (ct.title || "No live show");
     document.getElementById("now-art").src = md.artwork_url || FALLBACK_ART;
   } catch (e) {
     console.error("Live‐now fetch error:", e);
@@ -69,13 +66,13 @@ async function fetchLiveNow() {
   }
 }
 
-// 3b) Weekly schedule (exactly your existing code)
+// 3b) Weekly schedule
 async function fetchWeeklySchedule() {
   const container = document.getElementById("schedule-container");
   if (!container) return;
   container.innerHTML = "<p>Loading this week's schedule…</p>";
   try {
-    const now  = new Date();
+    const now = new Date();
     const then = new Date(now.getTime() + 7*24*60*60*1000);
     const { schedules } = await rcFetch(
       `/station/${STATION_ID}/schedule?startDate=${now.toISOString()}&endDate=${then.toISOString()}`
@@ -95,16 +92,19 @@ async function fetchWeeklySchedule() {
     const fmtTime = iso => new Date(iso).toLocaleTimeString("en-GB", {
       hour: "2-digit", minute: "2-digit"
     });
-    Object.entries(byDay).forEach(([day, events]) => {
+    for (const [day, events] of Object.entries(byDay)) {
       const h3 = document.createElement("h3");
       h3.textContent = day;
       container.appendChild(h3);
+
       const ul = document.createElement("ul");
       ul.style.listStyle = "none";
       ul.style.padding   = "0";
+
       events.forEach(ev => {
-        const li   = document.createElement("li");
+        const li = document.createElement("li");
         li.style.marginBottom = "1rem";
+
         const wrap = document.createElement("div");
         wrap.style.display    = "flex";
         wrap.style.alignItems = "center";
@@ -139,87 +139,62 @@ async function fetchWeeklySchedule() {
         li.appendChild(wrap);
         ul.appendChild(li);
       });
+
       container.appendChild(ul);
-    });
+    }
   } catch (e) {
     console.error("Schedule error:", e);
     container.innerHTML = "<p>Error loading schedule.</p>";
   }
 }
 
-// 3c) Default‐playlist “Now Playing” (fills #now-archive)
+// 3c) Now Playing Archive
 async function fetchNowPlayingArchive() {
   try {
     const { result } = await rcFetch(`/station/${STATION_ID}/schedule/live`);
     const { metadata: md = {}, content: ct = {} } = result;
     const el = document.getElementById("now-archive");
-
-    // 1) If there's a real track title, always use that
-    if (md.title) {
-      const display = md.artist
-        ? `${md.artist} – ${md.title}`
-        : md.title;
-      el.textContent = `Now Playing: ${display}`;
-    }
-    // 2) If metadata filename exists, use it
-    else if (md.filename) {
-      el.textContent = `Now Playing: ${md.filename}`;
-    }
-    // 3) Fall back to any content title (scheduled event)
-    else if (ct.title) {
-      el.textContent = `Now Playing: ${ct.title}`;
-    }
-    // 4) Or the playlist name
-    else if (ct.name) {
-      el.textContent = `Now Playing: ${ct.name}`;
-    }
-    // 5) Last resort
-    else {
-      el.textContent = "Now Playing: Unknown Show";
-    }
-  } catch (err) {
-    console.error("Archive‐now fetch error:", err);
-    document.getElementById("now-archive").textContent =
-      "Unable to load archive show";
+    if (md.title)        el.textContent = `Now Playing: ${md.artist? md.artist + " – " + md.title : md.title}`;
+    else if (md.filename) el.textContent = `Now Playing: ${md.filename}`;
+    else if (ct.title)    el.textContent = `Now Playing: ${ct.title}`;
+    else if (ct.name)     el.textContent = `Now Playing: ${ct.name}`;
+    else                  el.textContent = "Now Playing: Unknown Show";
+  } catch (e) {
+    console.error("Archive‐now fetch error:", e);
+    document.getElementById("now-archive").textContent = "Unable to load archive show";
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4) ADMIN & UI ACTIONS (unchanged)
+// 4) ADMIN & UI ACTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 function addMixcloud()    { /* … */ }
 function deleteMixcloud() { /* … */ }
 
 function openChatPopup() {
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
   const chatUrl = "https://app.radiocult.fm/embed/chat/cutters-choice-radio?theme=midnight&primaryColor=%235A8785&corners=sharp";
-
   if (isMobile) {
-    const chatModal = document.getElementById("chatModal");
-    const iframe = document.getElementById("chatModalIframe");
-    if (chatModal && iframe) {
-      iframe.src = chatUrl;
-      chatModal.style.display = "flex";
-    }
+    const chatModal = document.getElementById("chatModal"),
+          iframe    = document.getElementById("chatModalIframe");
+    iframe.src = chatUrl;
+    chatModal.style.display = "flex";
   } else {
     window.open(chatUrl, "CuttersChatPopup", "width=400,height=700,resizable=yes,scrollbars=yes");
   }
 }
 
 function closeChatModal() {
-  const chatModal = document.getElementById("chatModal");
-  const iframe = document.getElementById("chatModalIframe");
-  if (chatModal && iframe) {
-    chatModal.style.display = "none";
-    iframe.src = "";
-  }
+  const chatModal = document.getElementById("chatModal"),
+        iframe    = document.getElementById("chatModalIframe");
+  chatModal.style.display = "none";
+  iframe.src = "";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5) INITIALIZE ON DOM READY
 // ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
-  // a) Load everything
+  // a) Core fetches
   fetchLiveNow();
   fetchWeeklySchedule();
   fetchNowPlayingArchive();
@@ -243,73 +218,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // d) Pop-out player
   document.getElementById("popOutBtn")?.addEventListener("click", () => {
-    const src = document.getElementById("inlinePlayer").src;
-    const w = window.open("", "CCRPlayer", "width=400,height=200,resizable=yes");
+    const src = document.getElementById("inlinePlayer").src,
+          w   = window.open("", "CCRPlayer", "width=400,height=200,resizable=yes");
     w.document.write(`
-      <!DOCTYPE html><html lang="en"><head>
-      <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Cutters Choice Player</title><style>
-      body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;}
-      iframe{width:100%;height:180px;border:none;border-radius:4px;}
-      </style></head><body><iframe src="${src}" allow="autoplay"></iframe></body></html>`);
+      <!doctype html>
+      <html><head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>Cutters Player</title>
+        <style>
+          body{margin:0;background:#111;display:flex;align-items:center;justify-content:center;height:100vh;}
+          iframe{width:100%;height:180px;border:none;border-radius:4px;}
+        </style>
+      </head><body>
+        <iframe src="${src}" allow="autoplay"></iframe>
+      </body></html>`);
     w.document.close();
   });
 
-  // e) Ghost-user filter: remove any empty-name entries from the chat user list
-  const userListEl = document.querySelector('.rc-user-list');
-  if (userListEl) {
-    const observer = new MutationObserver(() => {
-      Array.from(userListEl.children).forEach(li => {
-        if (!li.textContent.trim()) li.remove();
-      });
+  // e) Socket.IO → custom user panel
+  if (window.io) {
+    const panel = document.getElementById("rc-user-panel");
+    if (!panel) return;
+
+    panel.innerHTML = '<li><em>Connecting…</em></li>';
+
+    const socket = io("https://app.radiocult.fm", {
+      transports: ["websocket"],
+      query: { station: STATION_ID, apiKey: API_KEY }
     });
-    observer.observe(userListEl, { childList: true });
-  }
-});
-// ─────────────────────────────────────────────────────────────────────────────
-// 5) INITIALIZE ON DOM READY
-// ─────────────────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  // a) Load everything
-  fetchLiveNow();
-  fetchWeeklySchedule();
-  fetchNowPlayingArchive();
 
-  // b) Auto-refresh
-  setInterval(fetchLiveNow,          30000);
-  setInterval(fetchNowPlayingArchive, 30000);
+    socket.on("connect", () => {
+      panel.innerHTML = "";
+    });
 
-  // c) Mixcloud shuffle & mobile removal
-  if (isMobile) {
-    document.querySelector(".mixcloud")?.remove();
-  } else {
-    document.querySelectorAll("iframe.mixcloud-iframe")
-      .forEach(ifr => ifr.src = ifr.dataset.src);
-    shuffleIframesDaily();
-    const mc = document.createElement("script");
-    mc.src   = "https://widget.mixcloud.com/widget.js";
-    mc.async = true;
-    document.body.appendChild(mc);
-  }
-
-  // d) Pop-out player
-  document.getElementById("popOutBtn")?.addEventListener("click", /* … */);
-
-  // e) Ghost‐ and duplicate‐user purge
-  const listEl = document.querySelector(".rc-user-list");
-  if (listEl) {
-    const purge = () => {
+    socket.on("user_list", users => {
+      panel.innerHTML = "";
       const seen = new Set();
-      listEl.querySelectorAll("*").forEach(el => {
-        const name = el.textContent.trim();
-        if (!name || seen.has(name)) el.remove();
-        else seen.add(name);
+      users.forEach(u => {
+        const n = (u.name||"").trim();
+        if (!n || seen.has(n)) return;
+        seen.add(n);
+        const li = document.createElement("li");
+        li.textContent = n;
+        panel.appendChild(li);
       });
-    };
-    // run once immediately…
-    purge();
-    // …and again whenever new nodes arrive
-    new MutationObserver(purge)
-      .observe(listEl, { childList: true });
+      if (!panel.children.length) {
+        const li = document.createElement("li");
+        li.innerHTML = "<em>No one online</em>";
+        panel.appendChild(li);
+      }
+    });
   }
 });
